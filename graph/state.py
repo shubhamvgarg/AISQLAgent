@@ -8,3 +8,5 @@ class SQLState(TypedDict):
     validated_sql: Optional[str]
     result: Optional[str]
     error: Optional[str]
+    attempts: int
+    max_attempts: int
