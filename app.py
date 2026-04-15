@@ -1,5 +1,5 @@
 import streamlit as st
-from graph.graph_builder import build_graph
+from graph.graph_builder import build_agent
 
 st.set_page_config(page_title="AskSQL", layout="wide")
 
@@ -10,10 +10,10 @@ query = st.text_input("Enter your question:")
 
 if st.button("Run Query"):
     if query:
-        graph = build_graph()
+        agent = build_agent()
 
         with st.spinner("Thinking..."):
-            response = graph.invoke({
+            response = agent.invoke({
                 "question": query
             })
 
