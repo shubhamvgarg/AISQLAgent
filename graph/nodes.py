@@ -2,6 +2,7 @@ from langchain_groq import ChatGroq
 from db.database import get_connection
 from utils.prompts import SQL_PROMPT, NORMALIZE_PROMPT
 from utils.validators import validate_sql_query
+from langgraph.graph import END
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -62,10 +63,11 @@ def execute_sql(state):
 
         conn.close()
 
-        return {**state, "result": str(rows)}
+        return {**state, "result": str(rows), "error": ""}
 
     except Exception as e:
         return {**state, "error": str(e)}
+    
     
 
 def update_db(state):
@@ -91,3 +93,44 @@ def normalize_output(state):
     )
      response = llm.invoke(prompt)
      return {**state, "result": response.content.strip()}
+
+def init_state(state):
+    return {
+        **state,
+        "attempts": 0,
+        "max_attempts": 3
+    }
+
+def fix_sql(state):
+    prompt = f"""
+    The following SQL query failed:
+
+    Query:
+    {state.get("sql_query")}
+
+    Error:
+    {state.get("error")}
+
+    Schema:
+    {state.get("schema")}
+
+    Fix the SQL query. Return ONLY corrected SQL.
+    """
+
+    response = llm.invoke(prompt)
+
+    return {
+        **state,
+        "sql_query": response.content.strip(),
+        "attempts": state["attempts"] + 1,
+        "error": ""
+    }
+
+
+def route_after_execution(state):
+    if "error" in state and state["error"]:
+        if state["attempts"] >= state["max_attempts"]:
+            return END
+        return "fix_sql"
+
+    return "normalize_output"
